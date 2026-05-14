@@ -215,13 +215,14 @@ AI_MODEL=qwen2.5
 ```json
 [
   {
-    "name": "AI智能题库",
+    "name": "AM共享智能题库",
     "homepage": "http://localhost:5000/",
     "url": "http://localhost:5000/query",
     "method": "get",
-    "type": "fetch",
+    "type": "GM_xmlhttpRequest",
     "contentType": "json",
     "data": {
+      "token": "your-secret-token-here",
       "title": "${title}",
       "options": "${options}",
       "type": "${type}"
@@ -239,9 +240,9 @@ AI_MODEL=qwen2.5
 | `homepage` | 服务地址 | 题库主页，仅用于展示 |
 | `url` | `.../query` | 请求地址。占位符 `${title}` `${options}` `${type}` 会被 OCS 自动替换 |
 | `method` | `"get"` | HTTP 方法。`get` 将参数附加在 URL 后；`post` 将参数放入请求体 |
-| `type` | `"fetch"` | 请求方式。`fetch` 使用浏览器原生 API；`GM_xmlhttpRequest` 使用油猴 API 可跨域 |
+| `type` | `"GM_xmlhttpRequest"` | 请求方式。**必须用 `GM_xmlhttpRequest`**：OCS 运行在 HTTPS 页面，浏览器会阻止 `fetch` 访问 HTTP 服务（混合内容限制），油猴 API 可绕过此限制 |
 | `contentType` | `"json"` | 响应数据类型。`json` 表示自动解析为 JSON 对象传给 handler |
-| `data` | 参数映射 | 发送给题库的参数。`${title}` = 题目标题, `${options}` = 选项(换行分隔), `${type}` = 题型 |
+| `data` | 参数映射 | 发送给题库的参数。`token` 为鉴权凭据，需与服务端 `.env` 中 `AUTH_TOKEN` 一致（不设则无需）。`${title}` = 题目标题, `${options}` = 选项(换行分隔), `${type}` = 题型 |
 | `handler` | 解析函数 | 处理响应的 JS 函数字符串。返回值 `[question, answer]` 告诉 OCS 题目和答案 |
 
 ### 远程部署

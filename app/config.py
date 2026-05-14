@@ -14,7 +14,11 @@ class Settings(BaseSettings):
     ai_model: str = "gpt-4o-mini"
     ai_temperature: float = 0.3
     ai_max_tokens: int = 500
+    ai_max_tokens_deep: int = 1024
     ai_timeout: int = 30
+
+    # Web Search
+    web_search: bool = True
 
     # Server
     server_host: str = "0.0.0.0"
@@ -22,6 +26,12 @@ class Settings(BaseSettings):
 
     # Database
     database_path: str = "./data/questions.db"
+
+    # Authentication (empty = no auth required)
+    auth_token: str = ""
+
+    # Debug
+    debug: bool = False
 
 
 settings = Settings()

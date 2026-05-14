@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Body, Query
 
-from app.models import QueryResponse, QueryData, StatsResponse, StatsData
+from app.models import QueryRequest, QueryResponse, QueryData, StatsResponse, StatsData
 from app.utils import normalize, compute_fingerprint, compute_options_hash
 from app.database import get_question, insert_question, upsert_question, get_stats
 from app.ai_client import query_ai
@@ -10,6 +10,18 @@ router = APIRouter()
 # Statistics (in-process counters)
 _cache_hits = 0
 _cache_misses = 0
+
+
+def _extract_params(
+    body: QueryRequest | None = None,
+    title_q: str | None = None,
+    options_q: str | None = None,
+    type_q: str | None = None,
+) -> tuple[str, str | None, str | None]:
+    """Extract params from JSON body first, fall back to query string."""
+    if body and body.title:
+        return body.title, body.options, body.type
+    return title_q or "", options_q, type_q
 
 
 async def _process_question(
@@ -47,11 +59,13 @@ async def _process_question(
         answer = await query_ai(title, options, qtype)
     except RuntimeError as e:
         return QueryResponse(code=2, msg=str(e))
+    except ValueError as e:
+        return QueryResponse(code=3, msg=str(e))
 
     if force_refresh:
         await upsert_question(fingerprint, title, options, qtype, answer, opts_hash)
     else:
-        await insert_question(fingerprint, title, options, qtype, answer, opts_hash)
+        await upsert_question(fingerprint, title, options, qtype, answer, opts_hash)
 
     return QueryResponse(
         code=0,
@@ -62,7 +76,7 @@ async def _process_question(
 
 @router.get("/query")
 async def query_get(
-    title: str = Query(...),
+    title: str = Query(""),
     options: str | None = Query(None),
     type: str | None = Query(None),
 ):
@@ -71,16 +85,18 @@ async def query_get(
 
 @router.post("/query")
 async def query_post(
-    title: str = Query(...),
+    body: QueryRequest | None = Body(None),
+    title: str = Query(""),
     options: str | None = Query(None),
     type: str | None = Query(None),
 ):
-    return await _process_question(title, options, type)
+    t, o, ty = _extract_params(body, title, options, type)
+    return await _process_question(t, o, ty)
 
 
 @router.get("/reload")
 async def reload_get(
-    title: str = Query(...),
+    title: str = Query(""),
     options: str | None = Query(None),
     type: str | None = Query(None),
 ):
@@ -89,11 +105,13 @@ async def reload_get(
 
 @router.post("/reload")
 async def reload_post(
-    title: str = Query(...),
+    body: QueryRequest | None = Body(None),
+    title: str = Query(""),
     options: str | None = Query(None),
     type: str | None = Query(None),
 ):
-    return await _process_question(title, options, type, force_refresh=True)
+    t, o, ty = _extract_params(body, title, options, type)
+    return await _process_question(t, o, ty, force_refresh=True)
 
 
 @router.get("/stats")

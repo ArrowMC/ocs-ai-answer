@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class QueryRequest(BaseModel):
-    title: str = Field(..., min_length=1, description="Question text")
+    title: str = Field(default="", description="Question text")
     options: str | None = Field(None, description="Options separated by \\n")
     type: str | None = Field(None, description="Question type: single/multiple/judgement/completion")
 
